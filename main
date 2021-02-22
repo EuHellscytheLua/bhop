@@ -1,0 +1,529 @@
+--updated today
+-- cool doges bhop api, credits to him
+-- surffkr v1.1 
+--just fixed color thing with rgb cycle
+--changed api to run on github bc fuck pastebin
+-- original creator is wraithh [made gui and autostrafe]
+if not getgenv().BhopApi then loadstring(game:HttpGet("https://raw.githubusercontent.com/EuHellscytheLua/bhop/main/api", true))() else end
+
+-- instances
+
+local DESTROYING = false
+local MB = game.Players.LocalPlayer:GetMouse()
+local SELECTBOX = Instance.new("SelectionBox", game.StarterGui)
+
+local SURFFKR = Instance.new("ScreenGui")
+local TAB = Instance.new("Frame")
+local FRAME = Instance.new("Frame")
+local CLOSE = Instance.new("TextButton")
+local TITLE = Instance.new("TextLabel")
+local OPTIONS = Instance.new("ScrollingFrame")
+local DSTRY = Instance.new("TextButton")
+local ASTRAFE = Instance.new("TextButton")
+local HINT = Instance.new("TextLabel")
+local VALUE = Instance.new("TextBox")
+local OPT1 = Instance.new("TextButton")
+local OPT2 = Instance.new("TextButton")
+local OPT3 = Instance.new("TextButton")
+local OPT4 = Instance.new("TextButton")
+local OPT5 = Instance.new("TextButton")
+local GUICLR = Instance.new("TextBox")
+local CGUCLR = Instance.new("TextButton")
+local DSTRYCHECK = Instance.new("BoolValue")
+local VAL = Instance.new("NumberValue")
+local CLR = Instance.new("NumberValue")
+local OPEN = Instance.new("TextButton")
+
+-- properties
+
+SURFFKR.Parent = game.CoreGui
+SURFFKR.Name = "surfFKR core"
+
+SELECTBOX.Adornee = nil
+SELECTBOX.Color3 = Color3.fromRGB(255, 0, 0)
+SELECTBOX.SurfaceColor3 = Color3.fromRGB(255, 0, 0)
+SELECTBOX.LineThickness = 0.1
+
+TAB.Name = "TAB"
+TAB.Parent = SURFFKR
+TAB.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
+TAB.BorderSizePixel = 0
+TAB.LayoutOrder = 4
+TAB.Position = UDim2.new(0.089, 0, 0.153, 0)
+TAB.Size = UDim2.new(0, 381, 0, 20)
+TAB.Draggable = true
+TAB.Selectable = true
+TAB.Active = true
+
+FRAME.Name = "FRAME"
+FRAME.Parent = TAB
+FRAME.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+FRAME.BorderSizePixel = 0
+FRAME.LayoutOrder = 3
+FRAME.Position = UDim2.new(0, 0, 0.987, 0)
+FRAME.Size = UDim2.new(0, 381,0, 276)
+
+CLOSE.Name = "CLOSE"
+CLOSE.Parent = TAB
+CLOSE.BackgroundTransparency = 1
+CLOSE.BorderSizePixel = 0
+CLOSE.Position = UDim2.new(0.948, 0, 0, 0)
+CLOSE.Size = UDim2.new(0, 20,0, 20)
+CLOSE.Font = Enum.Font.GothamBold
+CLOSE.Text = "X"
+CLOSE.TextColor3 = Color3.fromRGB(30, 30, 30)
+CLOSE.TextStrokeTransparency = 1
+CLOSE.TextSize = 14
+--lol spaces
+TITLE.Name = "TITLE"
+TITLE.Parent = TAB
+TITLE.BackgroundTransparency = 1
+TITLE.BorderSizePixel = 1
+TITLE.Position = UDim2.new(0, 0, 0, 0)
+TITLE.Size = UDim2.new(0,118,0,20)
+TITLE.Font = Enum.Font.GothamBold
+TITLE.Text = "                             surf / bhop  fkr remastered by Eu"
+TITLE.TextColor3 = Color3.fromRGB(30,30,30)
+TITLE.TextStrokeTransparency = 1
+TITLE.TextSize = 14
+
+OPTIONS.Name = "OPTIONS"
+OPTIONS.Parent = FRAME
+OPTIONS.BackgroundColor3 = Color3.fromRGB(30,30,30)
+OPTIONS.BackgroundTransparency = 0
+OPTIONS.BorderColor3 = Color3.fromRGB(0,170,127)
+OPTIONS.BorderSizePixel = 2
+OPTIONS.Position = UDim2.new(0.034, 0, 0.236, 0)
+OPTIONS.Size = UDim2.new(0,146, 0, 164)
+
+DSTRY.Name = "DSTRY"
+DSTRY.Parent = FRAME
+DSTRY.BackgroundColor3 = Color3.fromRGB(0,170,127)
+DSTRY.BackgroundTransparency = 0
+DSTRY.BorderSizePixel = 0
+DSTRY.Position = UDim2.new(0.029, 0, 0.043, 0)
+DSTRY.Size = UDim2.new(0,151,0,43)
+DSTRY.Font = Enum.Font.GothamBold
+DSTRY.Text = "destroy mode: off"
+DSTRY.TextColor3 = Color3.fromRGB(0,0,0)
+DSTRY.TextSize = 16
+DSTRYCHECK.Name = "DSTRYCHECK"
+DSTRYCHECK.Value = false
+DSTRYCHECK.Parent = DSTRY
+
+ASTRAFE.Name = "ASTRAFE"
+ASTRAFE.Parent = FRAME
+ASTRAFE.BackgroundColor3 = Color3.fromRGB(0,170,127)
+ASTRAFE.BorderSizePixel = 0
+ASTRAFE.Position = UDim2.new(0.577, 0, 0.043, 0)
+ASTRAFE.Size = UDim2.new(0,149, 0, 43)
+ASTRAFE.Font = Enum.Font.GothamBold
+ASTRAFE.Text = "autostrafe: off"
+ASTRAFE.TextSize = 16
+ASTRAFE.TextColor3 = Color3.fromRGB(0,0,0)
+
+HINT.Name = "HINT"
+HINT.Parent = ASTRAFE
+HINT.BackgroundTransparency = 1
+HINT.BorderSizePixel = 0
+HINT.Position = UDim2.new(0,0,1.093,0)
+HINT.Size = UDim2.new(0,149,0,14)
+HINT.Font = Enum.Font.GothamBold
+HINT.Text = "hint: hold shift and move ur mouse"
+HINT.TextColor3 = Color3.fromRGB(0,170,127)
+HINT.TextSize = 9
+HINT.TextStrokeTransparency = 0
+
+VALUE.Name = "VALUE"
+VALUE.Parent = FRAME
+VALUE.BackgroundColor3 = Color3.fromRGB(30,30,30)
+VALUE.BorderColor3 = Color3.fromRGB(0,170,127)
+VALUE.BorderSizePixel = 2
+VALUE.ClearTextOnFocus = true
+VALUE.Position = UDim2.new(0.034, 0, 0.873, 0)
+VALUE.Size = UDim2.new(0,146,0,22)
+VALUE.Font = Enum.Font.GothamBold
+VALUE.Text = "value..."
+VALUE.TextColor3 = Color3.fromRGB(0,170,127)
+VALUE.TextSize = 14
+
+CGUCLR.Name = "CGUCLR"
+CGUCLR.Parent = FRAME
+CGUCLR.BackgroundColor3 = Color3.fromRGB(0,170,127)
+CGUCLR.BackgroundTransparency = 0
+CGUCLR.BorderSizePixel = 0
+CGUCLR.Position = UDim2.new(0.449, 0, 0.435, 0)
+CGUCLR.Size = UDim2.new(0,195,0,35)
+CGUCLR.Font = Enum.Font.GothamBold
+CGUCLR.Text = "Rainbow Color"
+CGUCLR.TextColor3 = Color3.fromRGB(0,0,0)
+CGUCLR.TextSize = 16
+
+OPEN.Name = "OPEN"
+OPEN.Parent = SURFFKR
+OPEN.BackgroundColor3 = Color3.fromRGB(30,30,30)
+OPEN.BackgroundTransparency = 0
+OPEN.BorderColor3 = Color3.fromRGB(0,170,127)
+OPEN.BorderSizePixel = 2
+OPEN.Position = UDim2.new(0.902, 0, 0.933, 0)
+OPEN.Size = UDim2.new(0,140,0,35)
+OPEN.Font = Enum.Font.GothamBold
+OPEN.Text = "open surf fkr"
+OPEN.TextColor3 = Color3.fromRGB(0,170,127)
+OPEN.TextSize = 16
+OPEN.TextStrokeTransparency = 0
+OPEN.Draggable = true
+OPEN.Selectable = true
+OPEN.Visible = false
+
+CLR.Parent = FRAME
+CLR.Value = 255,255,255
+
+-- all option properties, boring
+
+OPT1.Parent = OPTIONS
+OPT1.BackgroundColor3 = Color3.fromRGB(0,170,127)
+OPT1.BorderSizePixel = 0
+OPT1.Position = UDim2.new(0,0,0,0)
+OPT1.Size = UDim2.new(0,132,0,16)
+OPT1.Font = Enum.Font.GothamBold
+OPT1.Text = "setgains()"
+OPT1.TextColor3 = Color3.fromRGB(30,30,30)
+OPT1.TextSize = 14
+OPT1.TextStrokeTransparency = 1
+
+OPT2.Parent = OPTIONS
+OPT2.BackgroundColor3 = Color3.fromRGB(0,170,127)
+OPT2.BorderSizePixel = 0
+OPT2.Position = UDim2.new(0,0,0.04,0)
+OPT2.Size = UDim2.new(0,132,0,16)
+OPT2.Font = Enum.Font.GothamBold
+OPT2.Text = "setgravity()"
+OPT2.TextColor3 = Color3.fromRGB(30,30,30)
+OPT2.TextSize = 14
+OPT2.TextStrokeTransparency = 1
+
+OPT3.Parent = OPTIONS
+OPT3.BackgroundColor3 = Color3.fromRGB(0,170,127)
+OPT3.BorderSizePixel = 0
+OPT3.Position = UDim2.new(0,0,0.08,0)
+OPT3.Size = UDim2.new(0,132,0,16)
+OPT3.Font = Enum.Font.GothamBold
+OPT3.Text = "setfriction()"
+OPT3.TextColor3 = Color3.fromRGB(30,30,30)
+OPT3.TextSize = 14
+OPT3.TextStrokeTransparency = 1
+
+OPT4.Parent = OPTIONS
+OPT4.BackgroundColor3 = Color3.fromRGB(0,170,127)
+OPT4.BorderSizePixel = 0
+OPT4.Position = UDim2.new(0,0,0.12,0)
+OPT4.Size = UDim2.new(0,132,0,16)
+OPT4.Font = Enum.Font.GothamBold
+OPT4.Text = "setwalkspeed()"
+OPT4.TextColor3 = Color3.fromRGB(30,30,30)
+OPT4.TextSize = 14
+OPT4.TextStrokeTransparency = 1
+
+OPT5.Parent = OPTIONS
+OPT5.BackgroundColor3 = Color3.fromRGB(0,170,127)
+OPT5.BorderSizePixel = 0
+OPT5.Position = UDim2.new(0,0,0.16,0)
+OPT5.Size = UDim2.new(0,132,0,16)
+OPT5.Font = Enum.Font.GothamBold
+OPT5.Text = "settime()"
+OPT5.TextColor3 = Color3.fromRGB(30,30,30)
+OPT5.TextSize = 14
+OPT5.TextStrokeTransparency = 1
+
+-- ok now all that boring stuff is done lets get in to the JUICE
+
+local speed = 0.2		
+local base = TAB, OPTIONS, DSTRY, ASTRAFE, HINT, VALUE, GUICLR, CGUCLR, OPT1, OPT2, OPT3, OPT4, OPT5, OPT6, OPT7, OPT8, OPT9, OPT10, OPT11, VALUE
+
+function transition(c2,c1)
+	for i = 0,1,speed do
+		base.BackgroundColor3 = Color3.new(((c1.r*(1-i))+(c2.r*i)),((c1.g*(1-i))+(c2.g*i)),((c1.b*(1-i))+(c2.b*i)))
+		wait()
+	end
+	base.BackgroundColor3 = c2
+end
+
+CGUCLR.MouseButton1Down:Connect(function()
+	local top = 255
+	while true do
+	wait()
+	for i = 1,top,1 do
+	TAB.BackgroundColor3 = Color3.new(i/top,0/top,0/top)
+	OPTIONS.BorderColor3 = Color3.new(i/top,0/top,0/top)
+	DSTRY.BackgroundColor3 = Color3.new(i/top,0/top,0/top)
+	ASTRAFE.BackgroundColor3 = Color3.new(i/top,0/top,0/top)
+	HINT.TextColor3 = Color3.new(i/top,0/top,0/top)
+	VALUE.TextColor3 = Color3.new(i/top,0/top,0/top)
+	VALUE.BorderColor3 = Color3.new(i/top,0/top,0/top)
+	CGUCLR.BackgroundColor3 = Color3.new(i/top,0/top,0/top)
+	OPEN.TextColor3 = Color3.new(i/top,0/top,0/top)
+	OPEN.BorderColor3 = Color3.new(i/top,0/top,0/top)
+	OPT1.BackgroundColor3 = Color3.new(i/top,0/top,0/top)
+	OPT2.BackgroundColor3 = Color3.new(i/top,0/top,0/top)
+	OPT3.BackgroundColor3 = Color3.new(i/top,0/top,0/top)
+	OPT4.BackgroundColor3 = Color3.new(i/top,0/top,0/top)
+	OPT5.BackgroundColor3 = Color3.new(i/top,0/top,0/top)
+	wait()
+	end
+	for i = 1,top,1 do
+	TAB.BackgroundColor3 = Color3.new(top/top,i/top,0/top)
+	OPTIONS.BorderColor3 = Color3.new(top/top,i/top,0/top)
+	DSTRY.BackgroundColor3 = Color3.new(top/top,i/top,0/top)
+	ASTRAFE.BackgroundColor3 = Color3.new(top/top,i/top,0/top)
+	HINT.TextColor3 = Color3.new(top/top,i/top,0/top)
+	VALUE.TextColor3 = Color3.new(top/top,i/top,0/top)
+	VALUE.BorderColor3 = Color3.new(top/top,i/top,0/top)
+	CGUCLR.BackgroundColor3 = Color3.new(top/top,i/top,0/top)
+	OPEN.TextColor3 = Color3.new(top/top,i/top,0/top)
+	OPEN.BorderColor3 = Color3.new(top/top,i/top,0/top)
+	OPT1.BackgroundColor3 = Color3.new(top/top,i/top,0/top)
+	OPT2.BackgroundColor3 = Color3.new(top/top,i/top,0/top)
+	OPT3.BackgroundColor3 = Color3.new(top/top,i/top,0/top)
+	OPT4.BackgroundColor3 = Color3.new(top/top,i/top,0/top)
+	OPT5.BackgroundColor3 = Color3.new(top/top,i/top,0/top)
+	wait()
+	end
+	for i = 1,top,1 do
+	TAB.BackgroundColor3 = Color3.new(top/top,top/top,i/top)
+	OPTIONS.BorderColor3 = Color3.new(top/top,top/top,i/top)
+	DSTRY.BackgroundColor3 = Color3.new(top/top,top/top,i/top)
+	ASTRAFE.BackgroundColor3 = Color3.new(top/top,top/top,i/top)
+	HINT.TextColor3 = Color3.new(top/top,top/top,i/top)
+	VALUE.TextColor3 = Color3.new(top/top,top/top,i/top)
+	VALUE.BorderColor3 = Color3.new(top/top,top/top,i/top)
+	CGUCLR.BackgroundColor3 = Color3.new(top/top,top/top,i/top)
+	OPEN.TextColor3 = Color3.new(top/top,top/top,i/top)
+	OPEN.BorderColor3 = Color3.new(top/top,top/top,i/top)
+	OPT1.BackgroundColor3 = Color3.new(top/top,top/top,i/top)
+	OPT2.BackgroundColor3 = Color3.new(top/top,top/top,i/top)
+	OPT3.BackgroundColor3 = Color3.new(top/top,top/top,i/top)
+	OPT4.BackgroundColor3 = Color3.new(top/top,top/top,i/top)
+	OPT5.BackgroundColor3 = Color3.new(top/top,top/top,i/top)
+	wait()
+	end
+	for i = top,1,-1 do
+	TAB.BackgroundColor3 = Color3.new(i/top,top/top,top/top)
+	TAB.BackgroundColor3 = Color3.new(i/top,top/top,top/top)
+	OPTIONS.BorderColor3 = Color3.new(i/top,top/top,top/top)
+	DSTRY.BackgroundColor3 = Color3.new(i/top,top/top,top/top)
+	ASTRAFE.BackgroundColor3 = Color3.new(i/top,top/top,top/top)
+	HINT.TextColor3 = Color3.new(i/top,top/top,top/top)
+	VALUE.TextColor3 = Color3.new(i/top,top/top,top/top)
+	VALUE.BorderColor3 = Color3.new(i/top,top/top,top/top)
+	CGUCLR.BackgroundColor3 = Color3.new(i/top,top/top,top/top)
+	OPEN.TextColor3 = Color3.new(i/top,top/top,top/top)
+	OPEN.BorderColor3 = Color3.new(i/top,top/top,top/top)
+	OPT1.BackgroundColor3 = Color3.new(i/top,top/top,top/top)
+	OPT2.BackgroundColor3 = Color3.new(i/top,top/top,top/top)
+	OPT3.BackgroundColor3 = Color3.new(i/top,top/top,top/top)
+	OPT4.BackgroundColor3 = Color3.new(i/top,top/top,top/top)
+	OPT5.BackgroundColor3 = Color3.new(i/top,top/top,top/top)
+	wait()
+	end
+	for i = top,1,-1 do
+	TAB.BackgroundColor3 = Color3.new(0/top,i/top,top/top)
+	OPTIONS.BorderColor3 = Color3.new(0/top,i/top,top/top)
+	DSTRY.BackgroundColor3 = Color3.new(0/top,i/top,top/top)
+	ASTRAFE.BackgroundColor3 = Color3.new(0/top,i/top,top/top)
+	HINT.TextColor3 = Color3.new(0/top,i/top,top/top)
+	VALUE.TextColor3 = Color3.new(0/top,i/top,top/top)
+	VALUE.BorderColor3 = Color3.new(0/top,i/top,top/top)
+	CGUCLR.BackgroundColor3 = Color3.new(0/top,i/top,top/top)
+	OPEN.TextColor3 = Color3.new(0/top,i/top,top/top)
+	OPEN.BorderColor3 = Color3.new(0/top,i/top,top/top)
+	OPT1.BackgroundColor3 = Color3.new(0/top,i/top,top/top)
+	OPT2.BackgroundColor3 = Color3.new(0/top,i/top,top/top)
+	OPT3.BackgroundColor3 = Color3.new(0/top,i/top,top/top)
+	OPT4.BackgroundColor3 = Color3.new(0/top,i/top,top/top)
+	OPT5.BackgroundColor3 = Color3.new(0/top,i/top,top/top)
+	wait()
+	end
+	for i = top,1,-1 do
+	TAB.BackgroundColor3 = Color3.new(0/top,0/top,i/top)
+	OPTIONS.BorderColor3 = Color3.new(0/top,0/top,i/top)
+	DSTRY.BackgroundColor3 = Color3.new(0/top,0/top,i/top)
+	ASTRAFE.BackgroundColor3 = Color3.new(0/top,0/top,i/top)
+	HINT.TextColor3 = Color3.new(0/top,0/top,i/top)
+	VALUE.TextColor3 = Color3.new(0/top,0/top,i/top)
+	VALUE.BorderColor3 = Color3.new(0/top,0/top,i/top)
+	CGUCLR.BackgroundColor3 = Color3.new(0/top,0/top,i/top)
+	OPEN.TextColor3 = Color3.new(0/top,0/top,i/top)
+	OPEN.BorderColor3 = Color3.new(0/top,0/top,i/top)
+	OPT1.BackgroundColor3 = Color3.new(0/top,0/top,i/top)
+	OPT2.BackgroundColor3 = Color3.new(0/top,0/top,i/top)
+	OPT3.BackgroundColor3 = Color3.new(0/top,0/top,i/top)
+	OPT4.BackgroundColor3 = Color3.new(0/top,0/top,i/top)
+	OPT5.BackgroundColor3 = Color3.new(0/top,0/top,i/top)
+	wait()
+	end
+	end
+
+end)
+
+OPEN.MouseButton1Down:Connect(function()
+	TAB.Visible = true
+	OPEN.Visible = false
+end)
+
+CLOSE.MouseButton1Down:Connect(function()
+	TAB.Visible = false
+	OPEN.Visible = true
+end)
+
+GUICLR.Changed:Connect(function()
+while GUICLR == true do
+CLR.Value = GUICLR.Text
+end
+end)
+
+CGUCLR.MouseButton1Down:Connect(function()
+TAB.BackgroundColor3 = Color3.fromRGB(CLR.Value)
+OPTIONS.BorderColor3 = Color3.fromRGB(CLR.Value)
+DSTRY.BackgroundColor3 = Color3.fromRGB(CLR.Value)
+ASTRAFE.BackgroundColor3 = Color3.fromRGB(CLR.Value)
+HINT.TextColor3 = Color3.fromRGB(CLR.Value)
+VALUE.BorderColor3 = Color3.fromRGB(CLR.Value)
+GUICLR.BorderColor3 = Color3.fromRGB(CLR.Value)
+GUICLR.TextColor3 = Color3.fromRGB(CLR.Value)
+CGUCLR.BackgroundColor3 = Color3.fromRGB(CLR.Value)
+OPT1.BackgroundColor3 = Color3.fromRGB(CLR.Value)
+OPT2.BackgroundColor3 = Color3.fromRGB(CLR.Value)
+OPT3.BackgroundColor3 = Color3.fromRGB(CLR.Value)
+OPT4.BackgroundColor3 = Color3.fromRGB(CLR.Value)
+OPT5.BackgroundColor3 = Color3.fromRGB(CLR.Value)
+VALUE.TextColor3 = Color3.fromRGB(CLR.Value)
+end)
+
+DSTRY.MouseButton1Down:Connect(function()
+if DSTRYCHECK.Value == false then
+DSTRYCHECK.Value = true
+DSTRY.Text = "destroy mode: on"
+DESTROYING = true
+SELECTBOX.Parent = game.Workspace
+while DESTROYING == true do
+wait(0.1)
+SELECTBOX.Adornee = MB.Target
+end
+else
+DSTRYCHECK.Value = false
+DSTRY.Text = "destroy mode: off"
+DESTROYING = false
+SELECTBOX.Adornee = nil
+SELECTBOX.Parent = game.StarterGui
+end
+
+end)
+
+MB.Button1Down:Connect(function()
+if DESTROYING == true then
+(MB.Target).Parent = game.CoreGui
+end
+end)
+
+OPT1.MouseButton1Down:Connect(function()
+setgains(tonumber(VALUE.Text))
+end)
+
+OPT2.MouseButton1Down:Connect(function()
+setgravity(tonumber(VALUE.Text))
+end)
+
+OPT3.MouseButton1Down:Connect(function()
+setfriction(tonumber(VALUE.Text))
+end)
+
+OPT4.MouseButton1Down:Connect(function()
+setwalkspeed(tonumber(VALUE.Text))
+end)
+
+OPT5.MouseButton1Down:Connect(function()
+settime(tonumber(VALUE.Text))
+end)
+
+--autostrafe script
+
+ASTRAFE.MouseButton1Down:Connect(function()
+if ASTRAFE.Text == "autostrafe: off" then
+ASTRAFE.Text = "autostrafe: on"
+else
+ASTRAFE.Text = "autostrafe: off"
+end
+local Players = game:GetService"Players"
+local LocalPlayer = Players.LocalPlayer
+local UIS = game:GetService"UserInputService"
+local Mouse = LocalPlayer:GetMouse()
+local Toggle = false
+local Keys = {}
+local Key = Enum.KeyCode.LeftShift
+
+local function GetKeyState(key)
+    if (Keys[key] == nil) then Keys[key] = false end
+    return Keys[key]
+end
+
+local function PressKey(key)
+    if (not GetKeyState(key)) then
+        keypress(key)
+      Keys[key] = true
+    end
+end
+
+local function ReleaseKey(key)
+    if (GetKeyState(key)) then
+        keyrelease(key)
+        Keys[key] = false
+    end
+end
+
+local function ReleaseKeys()
+    for i, v in next, Keys do
+      if (v == true) then
+            keyrelease(i)
+            Keys[i] = false
+        end
+    end
+end
+
+local Move = UIS.InputChanged:connect(function(input)
+    if (Toggle) then
+        local delta = input.Delta
+        if (deltaX == 0) then
+          ReleaseKeys()
+      elseif (delta.X < 0) then
+            ReleaseKey(0x44) -- D
+            PressKey(0x41) -- A
+        elseif (delta.X > 0) then
+            ReleaseKey(0x41) -- A
+            PressKey(0x44) -- D
+        end
+    else
+        ReleaseKeys()
+    end
+end)
+
+local KeyDown = UIS.InputBegan:connect(function(input)
+    if (input.KeyCode == Key) then
+        PressKey(0x20)
+        print("[Strafehack] On")
+        Toggle = true
+    end
+end)
+
+local KeyUp = UIS.InputEnded:connect(function(input)
+    if (input.KeyCode == Key) then
+        ReleaseKey(0x20)
+        print("[Strafehack] Off")
+        Toggle = false
+    end
+end)
+
+_G.AC_DC = function() KeyUp:disconnect() KeyDown:disconnect() Move:disconnect() end
+
+print("[Strafehack] Initiated")
+end)
