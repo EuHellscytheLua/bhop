@@ -1,3 +1,1101 @@
-if bhopapi then warn("Bhop api is already open.")else print("Update for performance")local setconstant=debug.setconstant or setconstant;local getconstants=debug.getconstants or getconstants;local getupvalues=debug.getupvalues or getupvalues;local setupvalue=debug.setupvalue or setupvalue;local getinfo=debug.getinfo or getinfo;local getgc=debug.getgc or getgc or get_gc_objects;local a=is_protected_closure or function()return false end;local b=false;local c;local d;local e;local f;local g;for h,i in pairs(getgc())do if b then break end;if type(i)=="function"and not a(i)then pcall(function()if not b and getinfo(i)["source"]:find("Movement")then for j,k in pairs(getconstants(i))do if k==2.7 and c==nil then c={[1]=i,[2]=j,[3]=k}elseif k==18 and d==nil then d={[1]=i,[2]=j,[3]=k}elseif k==90 and f==nil then f={[1]=i,[2]=j,[3]=k}end end;for j,k in pairs(getupvalues(i))do if(k==-50 or k==-100)and e==nil then e={[1]=i,[2]=j,[3]=k}end end;if c and d and f and e then b=true end end end)end end;b=false;for h,l in pairs(getreg())do if b then break end;if type(l)=="table"and rawget(l,"Call")then g=rawget(l,"Call")b=true end end;getgenv().setgains=function(m)setconstant(c[1],c[2],c[3]*(m or 1))end;getgenv().setwalkspeed=function(n)setconstant(d[1],d[2],n or d[3])end;getgenv().setfriction=function(m)setconstant(f[1],f[2],f[3]*(m or 1))end;getgenv().setgravity=function(m)setupvalue(e[1],e[2],e[3]*(m or 1))end;getgenv().settime=function(o)local p=game:GetService("Workspace"):FindFirstChild("MapStart",true)local q=game:GetService("Workspace"):FindFirstChild("MapFinish",true)g("LeaveZone",q,tick())g("EnterZone",p,tick())g("LeaveZone",p,tick())g("EnterZone",q,tick()+o)end;getgenv().bhopapi=true end
+--[[
+    UPDATED BHOP API
+    Current GameMechanics-based replacement
 
--- cough
+    Exposes:
+        setgains(multiplier)
+        setgravity(multiplier)
+        setwalkspeed(value)
+        setfriction(multiplier)
+        settime(offset)            -- currently unsupported
+        resetbhopapi()
+        rescanbhopapi()
+        bhopstatus()
+
+    Notes:
+    - setgains uses active StyleInfo.mv
+    - setgravity uses GameMechanics:SetGravity when available
+    - setwalkspeed patches current GameMechanics constant 18
+    - setfriction patches current GameMechanics constant 90
+    - settime is intentionally not guessed yet
+]]
+
+local ENV =
+    getgenv and getgenv()
+    or _G
+
+------------------------------------------------------------
+-- CLEAN OLD API
+------------------------------------------------------------
+
+if ENV.__BHOP_API_V2
+and ENV.__BHOP_API_V2.cleanup
+then
+    pcall(
+        ENV.__BHOP_API_V2.cleanup
+    )
+end
+
+------------------------------------------------------------
+-- DEBUG FUNCTIONS
+------------------------------------------------------------
+
+local getgc =
+    (debug and debug.getgc)
+    or getgc
+    or get_gc_objects
+
+local getinfo =
+    (debug and debug.getinfo)
+    or getinfo
+
+local getconstants =
+    (debug and debug.getconstants)
+    or getconstants
+
+local setconstant =
+    (debug and debug.setconstant)
+    or setconstant
+
+assert(
+    type(getgc) == "function",
+    "getgc unavailable"
+)
+
+assert(
+    type(getconstants) == "function",
+    "getconstants unavailable"
+)
+
+assert(
+    type(setconstant) == "function",
+    "setconstant unavailable"
+)
+
+------------------------------------------------------------
+-- STATE
+------------------------------------------------------------
+
+local API = {
+    GM = nil,
+    Style = nil,
+
+    StyleBaselines = setmetatable(
+        {},
+        {
+            __mode = "k"
+        }
+    ),
+
+    ConstantTargets = {
+        Walkspeed = {},
+        Friction = {},
+    },
+
+    OriginalConstants = {},
+
+    Ready = false,
+}
+
+------------------------------------------------------------
+-- HELPERS
+------------------------------------------------------------
+
+local function safe(fn, ...)
+    if type(fn) ~= "function" then
+        return false
+    end
+
+    return pcall(
+        fn,
+        ...
+    )
+end
+
+local function getObjects()
+    local ok, objects =
+        pcall(
+            getgc,
+            true
+        )
+
+    if not ok then
+        ok, objects =
+            pcall(getgc)
+    end
+
+    if ok
+    and type(objects) == "table"
+    then
+        return objects
+    end
+
+    return {}
+end
+
+------------------------------------------------------------
+-- FIND ACTIVE GAMEMECHANICS
+------------------------------------------------------------
+
+local function scoreGM(object)
+
+    if type(object) ~= "table" then
+        return -1
+    end
+
+    local style =
+        rawget(
+            object,
+            "StyleInfo"
+        )
+
+    local simulation =
+        rawget(
+            object,
+            "Simulation"
+        )
+
+    local controls =
+        rawget(
+            object,
+            "GameControls"
+        )
+
+    if type(style) ~= "table"
+    or type(simulation) ~= "table"
+    or type(controls) ~= "table"
+    then
+        return -1
+    end
+
+    local score = 30
+
+    if type(
+        rawget(
+            simulation,
+            "Phys"
+        )
+    ) == "table"
+    then
+        score += 20
+    end
+
+    if type(
+        rawget(
+            simulation,
+            "Camera"
+        )
+    ) == "table"
+    then
+        score += 10
+    end
+
+    if typeof(
+        rawget(
+            object,
+            "Velocity"
+        )
+    ) == "Vector3"
+    then
+        score += 15
+    end
+
+    if type(
+        rawget(
+            object,
+            "Zones"
+        )
+    ) == "table"
+    then
+        score += 5
+    end
+
+    return score
+end
+
+local function findGameMechanics()
+
+    local best
+    local bestScore = -1
+
+    for _, object in pairs(
+        getObjects()
+    ) do
+
+        if type(object) == "table" then
+
+            local score =
+                scoreGM(object)
+
+            if score > bestScore then
+                bestScore = score
+                best = object
+            end
+        end
+    end
+
+    API.GM = best
+
+    if best then
+        API.Style =
+            rawget(
+                best,
+                "StyleInfo"
+            )
+    else
+        API.Style = nil
+    end
+
+    return best
+end
+
+------------------------------------------------------------
+-- STYLE BASELINE
+------------------------------------------------------------
+
+local function captureStyleBaseline(style)
+
+    if type(style) ~= "table" then
+        return nil
+    end
+
+    local existing =
+        API.StyleBaselines[
+            style
+        ]
+
+    if existing then
+        return existing
+    end
+
+    local baseline = {
+        mv =
+            rawget(
+                style,
+                "mv"
+            ),
+
+        gravity =
+            rawget(
+                style,
+                "gravity"
+            ),
+    }
+
+    API.StyleBaselines[
+        style
+    ] = baseline
+
+    return baseline
+end
+
+local function refreshStyle()
+
+    if type(API.GM) ~= "table" then
+        findGameMechanics()
+    end
+
+    if type(API.GM) ~= "table" then
+        return nil
+    end
+
+    local style =
+        rawget(
+            API.GM,
+            "StyleInfo"
+        )
+
+    if type(style) == "table" then
+
+        API.Style = style
+
+        captureStyleBaseline(
+            style
+        )
+
+        return style
+    end
+
+    return nil
+end
+
+------------------------------------------------------------
+-- LOCATE CURRENT CONSTANT TARGETS
+------------------------------------------------------------
+
+local function hasConstant(
+    constants,
+    wanted
+)
+    for _, value in pairs(constants) do
+        if value == wanted then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function hasString(
+    constants,
+    wanted
+)
+    for _, value in pairs(constants) do
+        if value == wanted then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function scanConstants()
+
+    API.ConstantTargets.Walkspeed = {}
+    API.ConstantTargets.Friction = {}
+
+    for _, fn in pairs(
+        getObjects()
+    ) do
+
+        if type(fn) == "function" then
+
+            local okInfo, info =
+                safe(
+                    getinfo,
+                    fn
+                )
+
+            local okConstants, constants =
+                safe(
+                    getconstants,
+                    fn
+                )
+
+            if okInfo
+            and okConstants
+            and type(constants) == "table"
+            then
+
+                local source =
+                    tostring(
+                        info.source
+                        or ""
+                    )
+
+                ------------------------------------------------
+                -- Current code now lives under GameMechanics.
+                ------------------------------------------------
+
+                if source:find(
+                    "GameMechanics",
+                    1,
+                    true
+                )
+                then
+
+                    ------------------------------------------------
+                    -- WALK SPEED TARGET
+                    --
+                    -- Old API modified 18.
+                    -- Current OnPrepare still contains 18.
+                    ------------------------------------------------
+
+                    if hasConstant(
+                        constants,
+                        18
+                    )
+                    and (
+                        hasString(
+                            constants,
+                            "WalkSplitCount"
+                        )
+                        or hasString(
+                            constants,
+                            "AllowStrafe"
+                        )
+                    )
+                    then
+
+                        for index, value
+                            in pairs(constants)
+                        do
+                            if value == 18 then
+
+                                table.insert(
+                                    API.ConstantTargets
+                                        .Walkspeed,
+                                    {
+                                        fn = fn,
+                                        index = index,
+                                        original = 18,
+                                    }
+                                )
+
+                            end
+                        end
+                    end
+
+                    ------------------------------------------------
+                    -- FRICTION TARGET
+                    ------------------------------------------------
+
+                    if hasConstant(
+                        constants,
+                        90
+                    )
+                    and hasString(
+                        constants,
+                        "Friction"
+                    )
+                    then
+
+                        for index, value
+                            in pairs(constants)
+                        do
+                            if value == 90 then
+
+                                table.insert(
+                                    API.ConstantTargets
+                                        .Friction,
+                                    {
+                                        fn = fn,
+                                        index = index,
+                                        original = 90,
+                                    }
+                                )
+
+                            end
+                        end
+                    end
+
+                end
+            end
+        end
+    end
+end
+
+------------------------------------------------------------
+-- INITIAL SCAN
+------------------------------------------------------------
+
+findGameMechanics()
+
+refreshStyle()
+
+scanConstants()
+
+API.Ready =
+    API.GM ~= nil
+
+------------------------------------------------------------
+-- SETGAINS
+------------------------------------------------------------
+
+ENV.setgains =
+    function(multiplier)
+
+        multiplier =
+            tonumber(multiplier)
+            or 1
+
+        local style =
+            refreshStyle()
+
+        if not style then
+            return false,
+                "StyleInfo unavailable"
+        end
+
+        local baseline =
+            captureStyleBaseline(
+                style
+            )
+
+        if type(
+            baseline.mv
+        ) ~= "number"
+        then
+            return false,
+                "Active style has no mv"
+        end
+
+        local value =
+            baseline.mv
+            * multiplier
+
+        rawset(
+            style,
+            "mv",
+            value
+        )
+
+        return true,
+            value
+    end
+
+------------------------------------------------------------
+-- SETGRAVITY
+------------------------------------------------------------
+
+ENV.setgravity =
+    function(multiplier)
+
+        multiplier =
+            tonumber(multiplier)
+            or 1
+
+        local gm =
+            API.GM
+            or findGameMechanics()
+
+        local style =
+            refreshStyle()
+
+        if not gm
+        or not style
+        then
+            return false,
+                "GameMechanics unavailable"
+        end
+
+        local baseline =
+            captureStyleBaseline(
+                style
+            )
+
+        local gravity =
+            baseline.gravity
+
+        if typeof(gravity) ~=
+            "Vector3"
+        then
+            return false,
+                "Gravity baseline unavailable"
+        end
+
+        local newGravity =
+            gravity
+            * multiplier
+
+        rawset(
+            style,
+            "gravity",
+            newGravity
+        )
+
+        ----------------------------------------------------
+        -- Preferred current implementation
+        ----------------------------------------------------
+
+        local setter
+
+        pcall(function()
+            setter = gm.SetGravity
+        end)
+
+        if type(setter) ==
+            "function"
+        then
+
+            local ok, err =
+                pcall(
+                    setter,
+                    gm,
+                    newGravity
+                )
+
+            if ok then
+                return true,
+                    newGravity
+            end
+
+            warn(
+                "[BHOP API] SetGravity method failed:",
+                err
+            )
+        end
+
+        ----------------------------------------------------
+        -- Fallback
+        ----------------------------------------------------
+
+        local simulation =
+            rawget(
+                gm,
+                "Simulation"
+            )
+
+        local phys =
+            type(simulation) ==
+                "table"
+            and rawget(
+                simulation,
+                "Phys"
+            )
+
+        if type(phys) ~= "table" then
+            return false,
+                "Physics object unavailable"
+        end
+
+        rawset(
+            phys,
+            "Gravity",
+            newGravity
+        )
+
+        ----------------------------------------------------
+        -- Mirror current SetGravity math
+        ----------------------------------------------------
+
+        local jumpTime =
+            rawget(
+                gm,
+                "JumpTime"
+            )
+
+        if type(jumpTime) ==
+            "number"
+        then
+
+            local y =
+                newGravity.Y
+
+            local jumpVelocity =
+                -jumpTime
+                * y
+                / 2
+
+            rawset(
+                gm,
+                "JumpVelocity",
+                jumpVelocity
+            )
+
+            rawset(
+                gm,
+                "jv2",
+                (
+                    jumpVelocity
+                    + y / 50
+                )
+                ^
+                2
+            )
+        end
+
+        return true,
+            newGravity
+    end
+
+------------------------------------------------------------
+-- SETWALKSPEED
+------------------------------------------------------------
+
+ENV.setwalkspeed =
+    function(value)
+
+        value =
+            tonumber(value)
+
+        if not value then
+            value = 18
+        end
+
+        if #API.ConstantTargets
+            .Walkspeed == 0
+        then
+
+            scanConstants()
+        end
+
+        if #API.ConstantTargets
+            .Walkspeed == 0
+        then
+
+            return false,
+                "Current walk-speed constant not found"
+        end
+
+        local changed = 0
+
+        for _, target in ipairs(
+            API.ConstantTargets
+                .Walkspeed
+        ) do
+
+            local ok =
+                pcall(
+                    setconstant,
+                    target.fn,
+                    target.index,
+                    value
+                )
+
+            if ok then
+                changed += 1
+            end
+
+        end
+
+        return changed > 0,
+            changed
+    end
+
+------------------------------------------------------------
+-- SETFRICTION
+------------------------------------------------------------
+
+ENV.setfriction =
+    function(multiplier)
+
+        multiplier =
+            tonumber(multiplier)
+            or 1
+
+        if #API.ConstantTargets
+            .Friction == 0
+        then
+
+            scanConstants()
+        end
+
+        if #API.ConstantTargets
+            .Friction == 0
+        then
+
+            return false,
+                "Current friction constant not found"
+        end
+
+        local value =
+            90
+            * multiplier
+
+        local changed = 0
+
+        for _, target in ipairs(
+            API.ConstantTargets
+                .Friction
+        ) do
+
+            local ok =
+                pcall(
+                    setconstant,
+                    target.fn,
+                    target.index,
+                    value
+                )
+
+            if ok then
+                changed += 1
+            end
+        end
+
+        return changed > 0,
+            changed
+    end
+
+------------------------------------------------------------
+-- SETTIME
+------------------------------------------------------------
+
+ENV.settime =
+    function(offset)
+
+        return false,
+            "settime is not implemented yet: "
+            ..
+            "current Zones.Enter/Leave timer signature "
+            ..
+            "still needs to be decoded"
+    end
+
+------------------------------------------------------------
+-- RESET
+------------------------------------------------------------
+
+ENV.resetbhopapi =
+    function()
+
+        ----------------------------------------------------
+        -- STYLE
+        ----------------------------------------------------
+
+        local style =
+            refreshStyle()
+
+        if style then
+
+            local baseline =
+                captureStyleBaseline(
+                    style
+                )
+
+            if type(
+                baseline.mv
+            ) == "number"
+            then
+
+                rawset(
+                    style,
+                    "mv",
+                    baseline.mv
+                )
+            end
+
+            if typeof(
+                baseline.gravity
+            ) == "Vector3"
+            then
+
+                local gm =
+                    API.GM
+
+                rawset(
+                    style,
+                    "gravity",
+                    baseline.gravity
+                )
+
+                if gm
+                and type(
+                    gm.SetGravity
+                ) == "function"
+                then
+
+                    pcall(
+                        gm.SetGravity,
+                        gm,
+                        baseline.gravity
+                    )
+                end
+            end
+        end
+
+        ----------------------------------------------------
+        -- CONSTANTS
+        ----------------------------------------------------
+
+        for _, target in ipairs(
+            API.ConstantTargets
+                .Walkspeed
+        ) do
+
+            pcall(
+                setconstant,
+                target.fn,
+                target.index,
+                target.original
+            )
+        end
+
+        for _, target in ipairs(
+            API.ConstantTargets
+                .Friction
+        ) do
+
+            pcall(
+                setconstant,
+                target.fn,
+                target.index,
+                target.original
+            )
+        end
+
+        return true
+    end
+
+------------------------------------------------------------
+-- RESCAN
+------------------------------------------------------------
+
+ENV.rescanbhopapi =
+    function()
+
+        findGameMechanics()
+
+        refreshStyle()
+
+        scanConstants()
+
+        API.Ready =
+            API.GM ~= nil
+
+        return API.Ready
+    end
+
+------------------------------------------------------------
+-- STATUS
+------------------------------------------------------------
+
+ENV.bhopstatus =
+    function()
+
+        refreshStyle()
+
+        local style =
+            API.Style
+
+        local name =
+            style
+            and rawget(
+                style,
+                "name"
+            )
+
+        local mv =
+            style
+            and rawget(
+                style,
+                "mv"
+            )
+
+        local gravity =
+            style
+            and rawget(
+                style,
+                "gravity"
+            )
+
+        print(
+            "=============================="
+        )
+
+        print(
+            "BHOP API V2"
+        )
+
+        print(
+            "GameMechanics:",
+            API.GM
+        )
+
+        print(
+            "Style:",
+            name
+        )
+
+        print(
+            "mv:",
+            mv
+        )
+
+        print(
+            "gravity:",
+            gravity
+        )
+
+        print(
+            "walkspeed targets:",
+            #API.ConstantTargets
+                .Walkspeed
+        )
+
+        print(
+            "friction targets:",
+            #API.ConstantTargets
+                .Friction
+        )
+
+        print(
+            "=============================="
+        )
+
+        return {
+            GameMechanics =
+                API.GM,
+
+            Style =
+                style,
+
+            mv =
+                mv,
+
+            gravity =
+                gravity,
+
+            walkspeedTargets =
+                #API.ConstantTargets
+                    .Walkspeed,
+
+            frictionTargets =
+                #API.ConstantTargets
+                    .Friction,
+        }
+    end
+
+------------------------------------------------------------
+-- CLEANUP
+------------------------------------------------------------
+
+API.cleanup =
+    function()
+
+        pcall(
+            ENV.resetbhopapi
+        )
+
+        ENV.setgains = nil
+        ENV.setgravity = nil
+        ENV.setwalkspeed = nil
+        ENV.setfriction = nil
+        ENV.settime = nil
+
+        ENV.resetbhopapi = nil
+        ENV.rescanbhopapi = nil
+        ENV.bhopstatus = nil
+
+        ENV.bhopapi = nil
+        ENV.__BHOP_API_V2 = nil
+    end
+
+------------------------------------------------------------
+-- EXPORT
+------------------------------------------------------------
+
+ENV.__BHOP_API_V2 =
+    API
+
+ENV.bhopapi =
+    true
+
+------------------------------------------------------------
+-- READY
+------------------------------------------------------------
+
+print(
+    "[BHOP API V2] Loaded"
+)
+
+print(
+    "[BHOP API V2] GameMechanics:",
+    API.GM
+)
+
+print(
+    "[BHOP API V2] Style:",
+    API.Style
+        and rawget(
+            API.Style,
+            "name"
+        )
+        or "Unknown"
+)
+
+print(
+    "[BHOP API V2] Walkspeed targets:",
+    #API.ConstantTargets
+        .Walkspeed
+)
+
+print(
+    "[BHOP API V2] Friction targets:",
+    #API.ConstantTargets
+        .Friction
+)
+
+print(
+    "[BHOP API V2] settime: pending timer decoder"
+)
